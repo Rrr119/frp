@@ -26,6 +26,10 @@ log.maxDays = 3
 # disable log colors when log.to is console, default is false
 log.disablePrintColor = false
 
+# auth.method specifies what authentication method to use to authenticate with frps.
+# Optional values are "token", "oidc" and "plugin". With "plugin", frps delegates
+# verification to an external auth plugin; frpc still sends auth.token as its
+# credential towards the plugin.
 auth.method = "token"
 # auth.additionalScopes specifies additional scopes to include authentication information.
 # Optional values are HeartBeats, NewWorkConns.

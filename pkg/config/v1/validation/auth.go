@@ -41,3 +41,18 @@ func (v *ConfigValidator) validateAuthTokenSource(token string, tokenSource *v1.
 	}
 	return errs
 }
+
+// validateAuthPluginConfig ensures the auth plugin endpoint is configured
+// when the plugin auth method is selected.
+func validateAuthPluginConfig(c *v1.AuthServerConfig) error {
+	if c.Method != v1.AuthMethodPlugin {
+		return nil
+	}
+	if c.Plugin.Addr == "" {
+		return fmt.Errorf("auth.plugin.addr is required when auth.method is plugin")
+	}
+	if c.Plugin.Timeout < 0 {
+		return fmt.Errorf("auth.plugin.timeout must not be negative")
+	}
+	return nil
+}

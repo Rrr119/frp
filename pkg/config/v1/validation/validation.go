@@ -37,6 +37,7 @@ var (
 	SupportedAuthMethods = []v1.AuthMethod{
 		"token",
 		"oidc",
+		"plugin",
 	}
 
 	SupportedAuthAdditionalScopes = []v1.AuthScope{

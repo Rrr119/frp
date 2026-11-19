@@ -1,0 +1,17 @@
+{
+  "root": "/home/dev/feedback/uid28757",
+  "B": "/home/dev/feedback/uid28757",
+  "sha": "017b5f07e1cca88c94ba141e14244dc9bb4717ce",
+  "wslDistro": "Ubuntu-26.04",
+  "source": {
+    "owner": "fatedier",
+    "repo": "frp",
+    "sha": "017b5f07e1cca88c94ba141e14244dc9bb4717ce"
+  },
+  "fork": {
+    "owner": "Rrr119",
+    "repo": "frp",
+    "cloneUrl": "https://github.com/Rrr119/frp.git"
+  },
+  "at": "2026-11-19T23:00:39.674Z"
+}

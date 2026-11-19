@@ -17,6 +17,8 @@ package controller
 import (
 	"github.com/fatedier/frp/pkg/nathole"
 	plugin "github.com/fatedier/frp/pkg/plugin/server"
+	"github.com/fatedier/frp/pkg/util/audit"
+	"github.com/fatedier/frp/pkg/util/limit"
 	"github.com/fatedier/frp/pkg/util/tcpmux"
 	"github.com/fatedier/frp/pkg/util/vhost"
 	"github.com/fatedier/frp/server/group"
@@ -61,6 +63,13 @@ type ResourceController struct {
 
 	// All server manager plugin
 	PluginManager *plugin.Manager
+
+	// Per-user (tenant) rate limiter for control operations such as NewProxy.
+	// Nil means no limit.
+	UserLimiter *limit.UserLimiter
+
+	// Audit logger for security-relevant events. Nil disables audit logging.
+	AuditLogger *audit.Logger
 }
 
 func (rc *ResourceController) Close() error {

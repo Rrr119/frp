@@ -36,6 +36,11 @@ func (v *ConfigValidator) ValidateServerConfig(c *v1.ServerConfig) (Warning, err
 	}
 
 	errs = AppendError(errs, v.validateAuthTokenSource(c.Auth.Token, c.Auth.TokenSource))
+	errs = AppendError(errs, validateAuthPluginConfig(&c.Auth))
+
+	if c.UserQPSLimit < 0 {
+		errs = AppendError(errs, fmt.Errorf("userQPSLimit must not be negative"))
+	}
 
 	if err := validateLogConfig(&c.Log); err != nil {
 		errs = AppendError(errs, err)

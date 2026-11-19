@@ -45,7 +45,9 @@ import (
 	"github.com/fatedier/frp/pkg/proto/wire"
 	"github.com/fatedier/frp/pkg/ssh"
 	"github.com/fatedier/frp/pkg/transport"
+	"github.com/fatedier/frp/pkg/util/audit"
 	httppkg "github.com/fatedier/frp/pkg/util/http"
+	"github.com/fatedier/frp/pkg/util/limit"
 	"github.com/fatedier/frp/pkg/util/log"
 	netpkg "github.com/fatedier/frp/pkg/util/net"
 	"github.com/fatedier/frp/pkg/util/tcpmux"
@@ -198,6 +200,14 @@ func NewService(cfg *v1.ServerConfig) (*Service, error) {
 		log.Infof("plugin [%s] has been registered", p.Name)
 	}
 	svr.rc.PluginManager = svr.pluginManager
+
+	// Init per-user (tenant) rate limiter and audit logger.
+	svr.rc.UserLimiter = limit.NewUserLimiter(cfg.UserQPSLimit)
+	auditLogger, err := audit.NewFileLogger(cfg.AuditLogFile)
+	if err != nil {
+		return nil, fmt.Errorf("create audit logger error: %v", err)
+	}
+	svr.rc.AuditLogger = auditLogger
 
 	// Init HTTP group controller
 	svr.rc.HTTPGroupCtl = group.NewHTTPGroupController(svr.httpVhostRouter)
@@ -517,6 +527,7 @@ func (svr *Service) closeResources() {
 		svr.sshTunnelGateway.Close()
 	}
 	svr.rc.Close()
+	_ = svr.rc.AuditLogger.Close()
 	svr.muxer.Close()
 	svr.ctlManager.Close()
 }
@@ -891,8 +902,23 @@ func (svr *Service) RegisterControl(
 		authVerifier = auth.AlwaysPassVerifier
 	}
 	if err := authVerifier.VerifyLogin(loginMsg); err != nil {
+		svr.rc.AuditLogger.Log(audit.Event{
+			Op:         audit.OpLogin,
+			Success:    false,
+			User:       loginMsg.User,
+			RunID:      loginMsg.RunID,
+			ClientAddr: ctlConn.RemoteAddr().String(),
+			Detail:     err.Error(),
+		})
 		return nil, err
 	}
+	svr.rc.AuditLogger.Log(audit.Event{
+		Op:         audit.OpLogin,
+		Success:    true,
+		User:       loginMsg.User,
+		RunID:      loginMsg.RunID,
+		ClientAddr: ctlConn.RemoteAddr().String(),
+	})
 
 	ctl, err := NewControl(ctx, &SessionContext{
 		RC:             svr.rc,

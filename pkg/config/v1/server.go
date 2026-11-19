@@ -85,6 +85,14 @@ type ServerConfig struct {
 	// MaxPortsPerClient specifies the maximum number of ports a single client
 	// may proxy to. If this value is 0, no limit will be applied.
 	MaxPortsPerClient int64 `json:"maxPortsPerClient,omitempty"`
+	// UserQPSLimit specifies the maximum rate of NewProxy requests accepted
+	// from each user (tenant). The burst size equals the ceiling of this
+	// value. If this value is 0 or negative, no limit is applied.
+	UserQPSLimit float64 `json:"userQPSLimit,omitempty"`
+	// AuditLogFile specifies the file used to record audit events (client
+	// logins, proxy registrations and removals) as JSON lines. If this value
+	// is empty, audit logging is disabled.
+	AuditLogFile string `json:"auditLogFile,omitempty"`
 	// UserConnTimeout specifies the maximum time to wait for a work
 	// connection. By default, this value is 10.
 	UserConnTimeout int64 `json:"userConnTimeout,omitempty"`
@@ -124,6 +132,7 @@ func (c *ServerConfig) Complete() error {
 	c.UserConnTimeout = util.EmptyOr(c.UserConnTimeout, 10)
 	c.UDPPacketSize = util.EmptyOr(c.UDPPacketSize, 1500)
 	c.NatHoleAnalysisDataReserveHours = util.EmptyOr(c.NatHoleAnalysisDataReserveHours, 7*24)
+	c.Auth.Plugin.Complete()
 	return nil
 }
 
@@ -133,11 +142,31 @@ type AuthServerConfig struct {
 	Token            string               `json:"token,omitempty"`
 	TokenSource      *ValueSource         `json:"tokenSource,omitempty"`
 	OIDC             AuthOIDCServerConfig `json:"oidc,omitempty"`
+	// Plugin configures the external auth plugin used when Method is "plugin".
+	Plugin AuthPluginServerConfig `json:"plugin,omitempty"`
 }
 
 func (c *AuthServerConfig) Complete() error {
 	c.Method = util.EmptyOr(c.Method, "token")
 	return nil
+}
+
+// AuthPluginServerConfig configures an external HTTP auth plugin. The server
+// delegates login verification to the plugin by sending the login message to
+// the configured HTTP endpoint and expecting a reject/allow response.
+type AuthPluginServerConfig struct {
+	// Addr is the address of the auth plugin HTTP endpoint, e.g.
+	// "http://127.0.0.1:7200". Scheme defaults to http if omitted.
+	Addr string `json:"addr,omitempty"`
+	// Path is the request path of the auth plugin endpoint. Defaults to "/auth".
+	Path string `json:"path,omitempty"`
+	// Timeout is the request timeout in seconds. Defaults to 5.
+	Timeout int64 `json:"timeout,omitempty"`
+}
+
+func (c *AuthPluginServerConfig) Complete() {
+	c.Path = util.EmptyOr(c.Path, "/auth")
+	c.Timeout = util.EmptyOr(c.Timeout, 5)
 }
 
 type AuthOIDCServerConfig struct {

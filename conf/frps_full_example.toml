@@ -133,6 +133,14 @@ auth.oidc.skipExpiryCheck = false
 # oidc skipIssuerCheck specifies whether to skip checking if the OIDC token's issuer claim matches the issuer specified in OidcIssuer.
 auth.oidc.skipIssuerCheck = false
 
+# auth.plugin configures an external HTTP auth plugin used when auth.method is "plugin".
+# frps sends each login message to this endpoint and expects a JSON response of
+# {"reject": false} or {"reject": true, "reject_reason": "..."}. The response may
+# also contain a "user" field to assign the authenticated tenant identity.
+# auth.plugin.addr = "http://127.0.0.1:7200"
+# auth.plugin.path = "/auth"
+# auth.plugin.timeout = 5
+
 # userConnTimeout specifies the maximum time to wait for a work connection.
 # userConnTimeout = 10
 
@@ -146,6 +154,16 @@ allowPorts = [
 
 # Max ports can be used for each client, default value is 0 means no limit
 maxPortsPerClient = 0
+
+# userQPSLimit limits the rate of NewProxy requests accepted from each user
+# (tenant). The burst size equals the ceiling of this value. By default, this
+# value is 0, which means no limit.
+# userQPSLimit = 0
+
+# auditLogFile specifies the file used to record audit events (client logins,
+# proxy registrations and removals) as JSON lines. If it is empty, audit
+# logging is disabled.
+# auditLogFile = "./audit.log"
 
 # If subDomainHost is not empty, you can set subdomain when type is http or https in frpc's configure file
 # When subdomain is test, the host used by routing is test.frps.com

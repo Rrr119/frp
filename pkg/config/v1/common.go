@@ -32,6 +32,9 @@ type AuthMethod string
 const (
 	AuthMethodToken AuthMethod = "token"
 	AuthMethodOIDC  AuthMethod = "oidc"
+	// AuthMethodPlugin delegates authentication to an external plugin
+	// (HTTP webhook) configured on the server side.
+	AuthMethodPlugin AuthMethod = "plugin"
 )
 
 // QUIC protocol options

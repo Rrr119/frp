@@ -34,6 +34,7 @@ import (
 	"github.com/fatedier/frp/pkg/msg"
 	plugin "github.com/fatedier/frp/pkg/plugin/server"
 	"github.com/fatedier/frp/pkg/transport"
+	"github.com/fatedier/frp/pkg/util/audit"
 	"github.com/fatedier/frp/pkg/util/util"
 	"github.com/fatedier/frp/pkg/util/wait"
 	"github.com/fatedier/frp/pkg/util/xlog"
@@ -676,6 +677,14 @@ func (ctl *Control) closeProxy(pxy proxy.Proxy) {
 	pxy.Close()
 	ctl.sessionCtx.PxyManager.Del(pxy.GetName())
 	ctl.serverMetrics.CloseProxy(pxy.GetName(), pxy.GetConfigurer().GetBaseConfig().Type)
+	ctl.sessionCtx.RC.AuditLogger.Log(audit.Event{
+		Op:        audit.OpCloseProxy,
+		Success:   true,
+		User:      ctl.sessionCtx.LoginMsg.User,
+		RunID:     ctl.runID,
+		ProxyName: pxy.GetName(),
+		ProxyType: pxy.GetConfigurer().GetBaseConfig().Type,
+	})
 
 	notifyContent := &plugin.CloseProxyContent{
 		User: ctl.loginUserInfo(),
@@ -745,15 +754,22 @@ func (ctl *Control) handleNewProxy(m msg.Message) {
 	xl := ctl.xl
 	inMsg := m.(*msg.NewProxy)
 
-	content := &plugin.NewProxyContent{
-		User:     ctl.loginUserInfo(),
-		NewProxy: *inMsg,
-	}
 	var remoteAddr string
-	retContent, err := ctl.sessionCtx.PluginManager.NewProxy(content)
-	if err == nil {
-		inMsg = &retContent.NewProxy
-		remoteAddr, err = ctl.RegisterProxy(inMsg)
+	var err error
+	user := ctl.sessionCtx.LoginMsg.User
+	if limiter := ctl.sessionCtx.RC.UserLimiter; limiter != nil && !limiter.Allow(user) {
+		err = fmt.Errorf("new proxy rate limit exceeded for user [%s]", user)
+	} else {
+		content := &plugin.NewProxyContent{
+			User:     ctl.loginUserInfo(),
+			NewProxy: *inMsg,
+		}
+		var retContent *plugin.NewProxyContent
+		retContent, err = ctl.sessionCtx.PluginManager.NewProxy(content)
+		if err == nil {
+			inMsg = &retContent.NewProxy
+			remoteAddr, err = ctl.RegisterProxy(inMsg)
+		}
 	}
 
 	// register proxy in this control
@@ -761,10 +777,27 @@ func (ctl *Control) handleNewProxy(m msg.Message) {
 		ProxyName: inMsg.ProxyName,
 	}
 	if err != nil {
+		ctl.sessionCtx.RC.AuditLogger.Log(audit.Event{
+			Op:        audit.OpNewProxy,
+			Success:   false,
+			User:      user,
+			RunID:     ctl.runID,
+			ProxyName: inMsg.ProxyName,
+			ProxyType: inMsg.ProxyType,
+			Detail:    err.Error(),
+		})
 		xl.Warnf("new proxy [%s] type [%s] error: %v", inMsg.ProxyName, inMsg.ProxyType, err)
 		resp.Error = util.GenerateResponseErrorString(fmt.Sprintf("new proxy [%s] error", inMsg.ProxyName),
 			err, lo.FromPtr(ctl.sessionCtx.ServerCfg.DetailedErrorsToClient))
 	} else {
+		ctl.sessionCtx.RC.AuditLogger.Log(audit.Event{
+			Op:        audit.OpNewProxy,
+			Success:   true,
+			User:      user,
+			RunID:     ctl.runID,
+			ProxyName: inMsg.ProxyName,
+			ProxyType: inMsg.ProxyType,
+		})
 		resp.RemoteAddr = remoteAddr
 		xl.Infof("new proxy [%s] type [%s] success", inMsg.ProxyName, inMsg.ProxyType)
 		clientID := ctl.sessionCtx.LoginMsg.ClientID

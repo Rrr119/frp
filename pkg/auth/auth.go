@@ -44,7 +44,7 @@ func BuildClientAuth(cfg *v1.AuthClientConfig) (*ClientAuth, error) {
 		return nil, fmt.Errorf("auth config is nil")
 	}
 	resolved := *cfg
-	if resolved.Method == v1.AuthMethodToken && resolved.TokenSource != nil {
+	if (resolved.Method == v1.AuthMethodToken || resolved.Method == v1.AuthMethodPlugin) && resolved.TokenSource != nil {
 		token, err := resolved.TokenSource.Resolve(context.Background())
 		if err != nil {
 			return nil, fmt.Errorf("failed to resolve auth.tokenSource: %w", err)
@@ -55,9 +55,15 @@ func BuildClientAuth(cfg *v1.AuthClientConfig) (*ClientAuth, error) {
 	if err != nil {
 		return nil, err
 	}
+	key := []byte(resolved.Token)
+	if resolved.Method == v1.AuthMethodPlugin {
+		// With plugin auth the server shares no token with clients, so the
+		// control channel key is empty on both sides.
+		key = nil
+	}
 	return &ClientAuth{
 		Setter: setter,
-		key:    []byte(resolved.Token),
+		key:    key,
 	}, nil
 }
 
@@ -74,6 +80,10 @@ func NewAuthSetter(cfg v1.AuthClientConfig) (authProvider Setter, err error) {
 				return nil, err
 			}
 		}
+	case v1.AuthMethodPlugin:
+		// The client authenticates towards the external auth plugin with a
+		// token carried in the privilege key, exactly like token auth.
+		authProvider = NewTokenAuth(cfg.AdditionalScopes, cfg.Token)
 	default:
 		return nil, fmt.Errorf("unsupported auth method: %s", cfg.Method)
 	}
@@ -111,8 +121,16 @@ func BuildServerAuth(cfg *v1.AuthServerConfig) (*ServerAuth, error) {
 	}
 	return &ServerAuth{
 		Verifier: NewAuthVerifier(resolved),
-		key:      []byte(resolved.Token),
+		key:      serverEncryptionKey(resolved),
 	}, nil
+}
+
+func serverEncryptionKey(cfg v1.AuthServerConfig) []byte {
+	if cfg.Method == v1.AuthMethodPlugin {
+		// See the comment in BuildClientAuth.
+		return nil
+	}
+	return []byte(cfg.Token)
 }
 
 func NewAuthVerifier(cfg v1.AuthServerConfig) (authVerifier Verifier) {
@@ -122,6 +140,8 @@ func NewAuthVerifier(cfg v1.AuthServerConfig) (authVerifier Verifier) {
 	case v1.AuthMethodOIDC:
 		tokenVerifier := NewTokenVerifier(cfg.OIDC)
 		authVerifier = NewOidcAuthVerifier(cfg.AdditionalScopes, tokenVerifier)
+	case v1.AuthMethodPlugin:
+		authVerifier = NewPluginAuthVerifier(cfg.Plugin)
 	}
 	return authVerifier
 }
