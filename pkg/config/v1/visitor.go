@@ -22,8 +22,10 @@ import (
 )
 
 type VisitorTransport struct {
-	UseEncryption  bool `json:"useEncryption,omitempty"`
-	UseCompression bool `json:"useCompression,omitempty"`
+	UseEncryption       bool   `json:"useEncryption,omitempty"`
+	UseCompression      bool   `json:"useCompression,omitempty"`
+	AdaptiveCompression bool   `json:"adaptiveCompression,omitempty"`
+	NetworkProfile      string `json:"networkProfile,omitempty"`
 }
 
 type VisitorBaseConfig struct {

@@ -21,6 +21,7 @@ import (
 	"strings"
 
 	v1 "github.com/fatedier/frp/pkg/config/v1"
+	"github.com/fatedier/frp/pkg/util/tunnel"
 	utilvalidation "github.com/fatedier/frp/pkg/util/validation"
 )
 
@@ -37,6 +38,11 @@ func validateProxyBaseConfigForClient(c *v1.ProxyBaseConfig) error {
 	}
 	if !slices.Contains([]string{"client", "server"}, c.Transport.BandwidthLimitMode) {
 		return fmt.Errorf("bandwidth limit mode should be client or server")
+	}
+	if c.Transport.NetworkProfile != "" {
+		if _, err := tunnel.ParseNetworkProfile(c.Transport.NetworkProfile); err != nil {
+			return err
+		}
 	}
 
 	if c.Plugin.Type == "" {

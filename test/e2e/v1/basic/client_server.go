@@ -14,13 +14,14 @@ import (
 )
 
 type generalTestConfigures struct {
-	server        string
-	client        string
-	clientPrefix  string
-	client2       string
-	client2Prefix string
-	testDelay     time.Duration
-	expectError   bool
+	server         string
+	client         string
+	clientPrefix   string
+	client2        string
+	client2Prefix  string
+	proxyTransport string
+	testDelay      time.Duration
+	expectError    bool
 }
 
 func renderBindPortConfig(protocol string) string {
@@ -55,15 +56,19 @@ func runClientServerTest(f *framework.Framework, configures *generalTestConfigur
 		type = "tcp"
 		localPort = {{ .%s }}
 		remotePort = {{ .%s }}
+		%s
 
 		[[proxies]]
 		name = "udp"
 		type = "udp"
 		localPort = {{ .%s }}
 		remotePort = {{ .%s }}
+		%s
 		`, configures.client,
 		framework.TCPEchoServerPort, tcpPortName,
+		configures.proxyTransport,
 		framework.UDPEchoServerPort, udpPortName,
+		configures.proxyTransport,
 	)
 
 	clientConfs := []string{clientConf}
@@ -109,6 +114,40 @@ var _ = ginkgo.Describe("[Feature: Client-Server]", func() {
 				client: fmt.Sprintf(`transport.protocol = "%s"`, protocol),
 			}
 			defineClientServerTest(protocol, f, configures)
+		}
+	})
+
+	ginkgo.Describe("Tunnel adaptive codec over tcp kcp quic", func() {
+		profiles := map[string]string{
+			"tcp":  "lan",
+			"kcp":  "wan",
+			"quic": "lossy",
+		}
+		for _, protocol := range []string{"tcp", "kcp", "quic"} {
+			for _, encrypted := range []bool{false, true} {
+				mode := "plaintext"
+				encryptionLine := "transport.useEncryption = false"
+				if encrypted {
+					mode = "encrypted"
+					encryptionLine = "transport.useEncryption = true"
+				}
+				profile := profiles[protocol]
+				configures := &generalTestConfigures{
+					server: renderBindPortConfig(protocol),
+					client: fmt.Sprintf(`transport.protocol = %q`, protocol),
+					proxyTransport: fmt.Sprintf(`
+						%s
+						transport.useCompression = true
+						transport.adaptiveCompression = true
+						transport.networkProfile = %q
+					`, encryptionLine, profile),
+				}
+				defineClientServerTest(
+					fmt.Sprintf("%s/%s/%s", protocol, profile, mode),
+					f,
+					configures,
+				)
+			}
 		}
 	})
 

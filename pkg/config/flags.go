@@ -114,6 +114,8 @@ func registerProxyBaseConfigFlags(cmd *cobra.Command, c *v1.ProxyBaseConfig, opt
 		cmd.Flags().IntVarP(&c.LocalPort, "local_port", "l", 0, "local port")
 		cmd.Flags().BoolVarP(&c.Transport.UseEncryption, "ue", "", false, "use encryption")
 		cmd.Flags().BoolVarP(&c.Transport.UseCompression, "uc", "", false, "use compression")
+		cmd.Flags().BoolVarP(&c.Transport.AdaptiveCompression, "adaptive_compression", "", false, "use network-aware adaptive compression")
+		cmd.Flags().StringVarP(&c.Transport.NetworkProfile, "network_profile", "", "", "network profile: lan, wan, or lossy")
 		cmd.Flags().StringVarP(&c.Transport.BandwidthLimitMode, "bandwidth_limit_mode", "", types.BandwidthLimitModeClient, "bandwidth limit mode")
 		cmd.Flags().VarP(&BandwidthQuantityFlag{V: &c.Transport.BandwidthLimit}, "bandwidth_limit", "", "bandwidth limit (e.g. 100KB or 1MB)")
 	}
@@ -140,6 +142,8 @@ func registerVisitorBaseConfigFlags(cmd *cobra.Command, c *v1.VisitorBaseConfig,
 	cmd.Flags().StringVarP(&c.Name, "visitor_name", "n", "", "visitor name")
 	cmd.Flags().BoolVarP(&c.Transport.UseEncryption, "ue", "", false, "use encryption")
 	cmd.Flags().BoolVarP(&c.Transport.UseCompression, "uc", "", false, "use compression")
+	cmd.Flags().BoolVarP(&c.Transport.AdaptiveCompression, "adaptive_compression", "", false, "use network-aware adaptive compression")
+	cmd.Flags().StringVarP(&c.Transport.NetworkProfile, "network_profile", "", "", "network profile: lan, wan, or lossy")
 	cmd.Flags().StringVarP(&c.SecretKey, "sk", "", "", "secret key")
 	cmd.Flags().StringVarP(&c.ServerName, "server_name", "", "", "server name")
 	cmd.Flags().StringVarP(&c.ServerUser, "server-user", "", "", "server user")

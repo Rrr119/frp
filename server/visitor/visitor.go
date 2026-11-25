@@ -24,6 +24,7 @@ import (
 	libio "github.com/fatedier/golib/io"
 
 	netpkg "github.com/fatedier/frp/pkg/util/net"
+	"github.com/fatedier/frp/pkg/util/tunnel"
 	"github.com/fatedier/frp/pkg/util/util"
 )
 
@@ -67,9 +68,33 @@ func (vm *Manager) NewConn(name string, conn net.Conn, timestamp int64, signKey 
 	useEncryption bool, useCompression bool, visitorUser string,
 	wireProtocol string, udpPacketCodecs ...string,
 ) (err error) {
+	return vm.NewConnWithConfig(name, conn, timestamp, signKey, ConnConfig{
+		UseEncryption:   useEncryption,
+		UseCompression:  useCompression,
+		VisitorUser:     visitorUser,
+		WireProtocol:    wireProtocol,
+		UDPPacketCodecs: udpPacketCodecs,
+	})
+}
+
+// ConnConfig contains visitor connection options, including optional adaptive
+// compression settings negotiated through NewVisitorConn.
+type ConnConfig struct {
+	UseEncryption       bool
+	UseCompression      bool
+	AdaptiveCompression bool
+	NetworkProfile      string
+	VisitorUser         string
+	WireProtocol        string
+	UDPPacketCodecs     []string
+}
+
+func (vm *Manager) NewConnWithConfig(name string, conn net.Conn, timestamp int64, signKey string,
+	cfg ConnConfig,
+) (err error) {
 	udpPacketCodec := ""
-	if len(udpPacketCodecs) > 0 {
-		udpPacketCodec = udpPacketCodecs[0]
+	if len(cfg.UDPPacketCodecs) > 0 {
+		udpPacketCodec = cfg.UDPPacketCodecs[0]
 	}
 	vm.mu.RLock()
 	defer vm.mu.RUnlock()
@@ -80,25 +105,25 @@ func (vm *Manager) NewConn(name string, conn net.Conn, timestamp int64, signKey 
 			return
 		}
 
-		if !slices.Contains(l.allowUsers, visitorUser) && !slices.Contains(l.allowUsers, "*") {
-			err = fmt.Errorf("visitor connection of [%s] user [%s] not allowed", name, visitorUser)
+		if !slices.Contains(l.allowUsers, cfg.VisitorUser) && !slices.Contains(l.allowUsers, "*") {
+			err = fmt.Errorf("visitor connection of [%s] user [%s] not allowed", name, cfg.VisitorUser)
 			return
 		}
 
 		var rwc io.ReadWriteCloser = conn
-		if useEncryption {
+		if cfg.UseEncryption {
 			if rwc, err = libio.WithEncryption(rwc, []byte(l.sk)); err != nil {
 				err = fmt.Errorf("create encryption connection failed: %v", err)
 				return
 			}
 		}
-		if useCompression {
-			rwc = libio.WithCompression(rwc)
+		if cfg.UseCompression {
+			rwc = tunnel.WithCompression(rwc, cfg.AdaptiveCompression, tunnel.NetworkProfile(cfg.NetworkProfile))
 		}
 		visitorConn := netpkg.WrapReadWriteCloserToConn(rwc, conn)
 		err = l.l.PutConn(&wireProtocolConn{
 			Conn:           visitorConn,
-			wireProtocol:   wireProtocol,
+			wireProtocol:   cfg.WireProtocol,
 			udpPacketCodec: udpPacketCodec,
 		})
 	} else {

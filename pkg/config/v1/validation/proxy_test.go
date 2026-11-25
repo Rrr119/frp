@@ -89,3 +89,23 @@ func TestValidateAnnotationsQualifiedName(t *testing.T) {
 	err = ValidateAnnotations(map[string]string{"example.com/": "value"})
 	require.ErrorContains(t, err, "name part must be non-empty")
 }
+
+func TestValidateProxyNetworkProfile(t *testing.T) {
+	newBase := func(profile string) *v1.ProxyBaseConfig {
+		return &v1.ProxyBaseConfig{
+			Name: "tunnel",
+			Type: "tcp",
+			Transport: v1.ProxyTransport{
+				NetworkProfile:     profile,
+				BandwidthLimitMode: "client",
+			},
+			ProxyBackend: v1.ProxyBackend{LocalPort: 8080},
+		}
+	}
+
+	require.NoError(t, validateProxyBaseConfigForClient(newBase("")))
+	require.NoError(t, validateProxyBaseConfigForClient(newBase("5g")))
+
+	err := validateProxyBaseConfigForClient(newBase("interstellar"))
+	require.ErrorContains(t, err, "unsupported network profile")
+}

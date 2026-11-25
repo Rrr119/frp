@@ -131,6 +131,10 @@ type NewProxy struct {
 
 	// tcpmux
 	Multiplexer string `json:"multiplexer,omitempty"`
+
+	// Adaptive tunnel compression. Optional fields keep older JSON peers compatible.
+	AdaptiveCompression bool   `json:"adaptive_compression,omitempty"`
+	NetworkProfile      string `json:"network_profile,omitempty"`
 }
 
 type NewProxyResp struct {
@@ -161,12 +165,14 @@ type StartWorkConn struct {
 }
 
 type NewVisitorConn struct {
-	RunID          string `json:"run_id,omitempty"`
-	ProxyName      string `json:"proxy_name,omitempty"`
-	SignKey        string `json:"sign_key,omitempty"`
-	Timestamp      int64  `json:"timestamp,omitempty"`
-	UseEncryption  bool   `json:"use_encryption,omitempty"`
-	UseCompression bool   `json:"use_compression,omitempty"`
+	RunID               string `json:"run_id,omitempty"`
+	ProxyName           string `json:"proxy_name,omitempty"`
+	SignKey             string `json:"sign_key,omitempty"`
+	Timestamp           int64  `json:"timestamp,omitempty"`
+	UseEncryption       bool   `json:"use_encryption,omitempty"`
+	UseCompression      bool   `json:"use_compression,omitempty"`
+	AdaptiveCompression bool   `json:"adaptive_compression,omitempty"`
+	NetworkProfile      string `json:"network_profile,omitempty"`
 }
 
 type NewVisitorConnResp struct {

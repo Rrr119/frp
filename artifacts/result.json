@@ -1,0 +1,18 @@
+{
+  "uid": "36798",
+  "harness": "Codex CLI",
+  "snapshotUrl": "https://github.com/Rrr119/frp/commit/fa28dd3e84cebf8e84e0ce8a37db816afccc3864",
+  "harnessVersion": "codex-cli 0.167.2",
+  "operatingSystem": "Ubuntu 26.04.1 LTS",
+  "operatingSystemCell": [
+    "MacOS/Linux"
+  ],
+  "outputDirectory": "/home/dev/feedback/uid36798",
+  "wslDistro": "Ubuntu-26.04",
+  "B": {
+    "success": false,
+    "canceled": true,
+    "error": "任务已取消",
+    "side": "B"
+  }
+}

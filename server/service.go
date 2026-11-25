@@ -976,8 +976,15 @@ func (svr *Service) RegisterVisitorConn(visitorConn net.Conn, newMsg *msg.NewVis
 		if visitorWireProtocol == "" {
 			visitorWireProtocol = wireProtocol
 		}
-		return svr.rc.VisitorManager.NewConn(newMsg.ProxyName, visitorConn, newMsg.Timestamp, newMsg.SignKey,
-			newMsg.UseEncryption, newMsg.UseCompression, visitorUser, visitorWireProtocol, visitorUDPPacketCodec)
+		return svr.rc.VisitorManager.NewConnWithConfig(newMsg.ProxyName, visitorConn, newMsg.Timestamp, newMsg.SignKey, visitor.ConnConfig{
+			UseEncryption:       newMsg.UseEncryption,
+			UseCompression:      newMsg.UseCompression,
+			AdaptiveCompression: newMsg.AdaptiveCompression,
+			NetworkProfile:      newMsg.NetworkProfile,
+			VisitorUser:         visitorUser,
+			WireProtocol:        visitorWireProtocol,
+			UDPPacketCodecs:     []string{visitorUDPPacketCodec},
+		})
 	}
 	// TODO(deprecation): Compatible with old versions, can be without runID, user is empty. In later versions, it will be mandatory to include runID.
 	// If runID is required, it is not compatible with versions prior to v0.50.0.

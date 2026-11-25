@@ -215,6 +215,12 @@ transport.bandwidthLimitMode = "client"
 transport.useEncryption = false
 # If true, traffic will be compressed
 transport.useCompression = false
+# Use network-aware Snappy frames when useCompression is enabled. The wire
+# format remains standard Snappy and can be decoded by older frp peers.
+# transport.adaptiveCompression = true
+# Tune adaptive compression for one of three network profiles:
+# lan (wired/local), wan (broadband/wifi), or lossy (mobile/4g/5g/weak).
+# transport.networkProfile = "wan"
 # Remote port listen by frps
 remotePort = 6001
 # frps will load balancing connections for proxies in same group

@@ -16,7 +16,6 @@ package proxy
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"net"
 	"reflect"
@@ -35,6 +34,7 @@ import (
 	"github.com/fatedier/frp/pkg/transport"
 	"github.com/fatedier/frp/pkg/util/limit"
 	netpkg "github.com/fatedier/frp/pkg/util/net"
+	"github.com/fatedier/frp/pkg/util/tunnel"
 	"github.com/fatedier/frp/pkg/util/xlog"
 	"github.com/fatedier/frp/pkg/vnet"
 )
@@ -141,19 +141,15 @@ func (pxy *BaseProxy) wrapWorkConn(conn net.Conn, encKey []byte) (io.ReadWriteCl
 			return conn.Close()
 		})
 	}
-	if pxy.baseCfg.Transport.UseEncryption {
-		var err error
-		rwc, err = libio.WithEncryption(rwc, encKey)
-		if err != nil {
-			conn.Close()
-			return nil, nil, fmt.Errorf("create encryption stream error: %w", err)
-		}
-	}
-	var recycleFn func()
-	if pxy.baseCfg.Transport.UseCompression {
-		rwc, recycleFn = libio.WithCompressionFromPool(rwc)
-	}
-	return rwc, recycleFn, nil
+	return tunnel.Wrap(rwc, tunnel.Options{
+		Encryption: pxy.baseCfg.Transport.UseEncryption,
+		Key:        encKey,
+		Compression: tunnel.CompressionOptions{
+			Enabled:  pxy.baseCfg.Transport.UseCompression,
+			Adaptive: pxy.baseCfg.Transport.AdaptiveCompression,
+			Network:  tunnel.NetworkProfile(pxy.baseCfg.Transport.NetworkProfile),
+		},
+	})
 }
 
 func (pxy *BaseProxy) SetInWorkConnCallback(cb func(*v1.ProxyBaseConfig, net.Conn, *msg.StartWorkConn) bool) {

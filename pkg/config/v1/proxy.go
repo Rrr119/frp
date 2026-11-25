@@ -44,6 +44,12 @@ type ProxyTransport struct {
 	// values include "v1", "v2", and "". If the value is "", a protocol
 	// version will be automatically selected. By default, this value is "".
 	ProxyProtocolVersion string `json:"proxyProtocolVersion,omitempty"`
+	// AdaptiveCompression replaces the fixed Snappy writer with a
+	// network-aware writer that emits compatible Snappy frames.
+	AdaptiveCompression bool `json:"adaptiveCompression,omitempty"`
+	// NetworkProfile tunes adaptive compression for "lan", "wan", or
+	// "lossy" networks. Common aliases such as wifi and cellular are accepted.
+	NetworkProfile string `json:"networkProfile,omitempty"`
 }
 
 type LoadBalancerConfig struct {
@@ -165,6 +171,8 @@ func (c *ProxyBaseConfig) MarshalToMsg(m *msg.NewProxy) {
 	m.ProxyType = c.Type
 	m.UseEncryption = c.Transport.UseEncryption
 	m.UseCompression = c.Transport.UseCompression
+	m.AdaptiveCompression = c.Transport.AdaptiveCompression
+	m.NetworkProfile = c.Transport.NetworkProfile
 	m.BandwidthLimit = c.Transport.BandwidthLimit.String()
 	// leave it empty for default value to reduce traffic
 	if c.Transport.BandwidthLimitMode != "client" {
@@ -181,6 +189,8 @@ func (c *ProxyBaseConfig) UnmarshalFromMsg(m *msg.NewProxy) {
 	c.Type = m.ProxyType
 	c.Transport.UseEncryption = m.UseEncryption
 	c.Transport.UseCompression = m.UseCompression
+	c.Transport.AdaptiveCompression = m.AdaptiveCompression
+	c.Transport.NetworkProfile = m.NetworkProfile
 	if m.BandwidthLimit != "" {
 		c.Transport.BandwidthLimit, _ = types.NewBandwidthQuantity(m.BandwidthLimit)
 	}

@@ -77,6 +77,29 @@ var _ = ginkgo.Describe("[Feature: Basic]", func() {
 						`,
 					},
 				}
+				for _, profile := range []string{"lan", "wan", "lossy"} {
+					for _, encrypted := range []bool{false, true} {
+						name := fmt.Sprintf("adaptive-%s-plain", profile)
+						extraConfig := fmt.Sprintf(`
+						transport.useCompression = true
+						transport.adaptiveCompression = true
+						transport.networkProfile = %q
+						`, profile)
+						if encrypted {
+							name = fmt.Sprintf("adaptive-%s-encrypted", profile)
+							extraConfig += "transport.useEncryption = true\n"
+						}
+						tests = append(tests, struct {
+							proxyName   string
+							portName    string
+							extraConfig string
+						}{
+							proxyName:   name,
+							portName:    port.GenName(strings.ReplaceAll(name, "-", "_")),
+							extraConfig: extraConfig,
+						})
+					}
+				}
 
 				// build all client config
 				for _, test := range tests {

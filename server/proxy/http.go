@@ -25,6 +25,7 @@ import (
 	v1 "github.com/fatedier/frp/pkg/config/v1"
 	"github.com/fatedier/frp/pkg/util/limit"
 	netpkg "github.com/fatedier/frp/pkg/util/net"
+	"github.com/fatedier/frp/pkg/util/tunnel"
 	"github.com/fatedier/frp/pkg/util/util"
 	"github.com/fatedier/frp/pkg/util/vhost"
 	"github.com/fatedier/frp/server/metrics"
@@ -135,7 +136,7 @@ func (pxy *HTTPProxy) GetRealConn(remoteAddr string) (workConn net.Conn, err err
 		}
 	}
 	if pxy.cfg.Transport.UseCompression {
-		rwc = libio.WithCompression(rwc)
+		rwc = tunnel.WithCompression(rwc, pxy.cfg.Transport.AdaptiveCompression, tunnel.NetworkProfile(pxy.cfg.Transport.NetworkProfile))
 	}
 
 	if pxy.GetLimiter() != nil {

@@ -179,6 +179,11 @@ type BaseProxyConf struct {
 	// By default, this value is "client".
 	BandwidthLimitMode string `ini:"bandwidth_limit_mode" json:"bandwidth_limit_mode"`
 
+	// AdaptiveCompression enables network-aware Snappy frame selection.
+	AdaptiveCompression bool `ini:"adaptive_compression" json:"adaptive_compression"`
+	// NetworkProfile selects lan, wan, or lossy compression behavior.
+	NetworkProfile string `ini:"network_profile" json:"network_profile"`
+
 	// meta info for each proxy
 	Metas map[string]string `ini:"-" json:"metas"`
 

@@ -35,6 +35,7 @@ import (
 	"github.com/fatedier/frp/pkg/proto/wire"
 	"github.com/fatedier/frp/pkg/util/limit"
 	netpkg "github.com/fatedier/frp/pkg/util/net"
+	"github.com/fatedier/frp/pkg/util/tunnel"
 	"github.com/fatedier/frp/pkg/util/xlog"
 	"github.com/fatedier/frp/server/controller"
 	"github.com/fatedier/frp/server/metrics"
@@ -294,18 +295,21 @@ func (pxy *BaseProxy) handleUserTCPConnection(userConn net.Conn) {
 	var local io.ReadWriteCloser = workConn
 	xl.Tracef("handler user tcp connection, use_encryption: %t, use_compression: %t",
 		cfg.Transport.UseEncryption, cfg.Transport.UseCompression)
-	if cfg.Transport.UseEncryption {
-		local, err = libio.WithEncryption(local, pxy.encryptionKey)
-		if err != nil {
-			xl.Errorf("create encryption stream error: %v", err)
-			return
-		}
+	wrappedLocal, recycleTunnel, err := tunnel.Wrap(local, tunnel.Options{
+		Encryption: cfg.Transport.UseEncryption,
+		Key:        pxy.encryptionKey,
+		Compression: tunnel.CompressionOptions{
+			Enabled:  cfg.Transport.UseCompression,
+			Adaptive: cfg.Transport.AdaptiveCompression,
+			Network:  tunnel.NetworkProfile(cfg.Transport.NetworkProfile),
+		},
+	})
+	if err != nil {
+		xl.Errorf("wrap tunnel stream error: %v", err)
+		return
 	}
-	if cfg.Transport.UseCompression {
-		var recycleFn func()
-		local, recycleFn = libio.WithCompressionFromPool(local)
-		defer recycleFn()
-	}
+	local = wrappedLocal
+	defer recycleTunnel()
 
 	if pxy.GetLimiter() != nil {
 		local = libio.WrapReadWriteCloser(limit.NewReader(local, pxy.GetLimiter()), limit.NewWriter(local, pxy.GetLimiter()), local.Close)

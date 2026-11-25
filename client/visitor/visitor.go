@@ -30,6 +30,7 @@ import (
 	plugin "github.com/fatedier/frp/pkg/plugin/visitor"
 	"github.com/fatedier/frp/pkg/transport"
 	netpkg "github.com/fatedier/frp/pkg/util/net"
+	"github.com/fatedier/frp/pkg/util/tunnel"
 	"github.com/fatedier/frp/pkg/util/util"
 	"github.com/fatedier/frp/pkg/util/xlog"
 	"github.com/fatedier/frp/pkg/vnet"
@@ -171,12 +172,14 @@ func (v *BaseVisitor) dialRawVisitorConn(cfg *v1.VisitorBaseConfig) (net.Conn, e
 	now := time.Now().Unix()
 	targetProxyName := naming.BuildTargetServerProxyName(v.clientCfg.User, cfg.ServerUser, cfg.ServerName)
 	newVisitorConnMsg := &msg.NewVisitorConn{
-		RunID:          v.helper.RunID(),
-		ProxyName:      targetProxyName,
-		SignKey:        util.GetAuthKey(cfg.SecretKey, now),
-		Timestamp:      now,
-		UseEncryption:  cfg.Transport.UseEncryption,
-		UseCompression: cfg.Transport.UseCompression,
+		RunID:               v.helper.RunID(),
+		ProxyName:           targetProxyName,
+		SignKey:             util.GetAuthKey(cfg.SecretKey, now),
+		Timestamp:           now,
+		UseEncryption:       cfg.Transport.UseEncryption,
+		UseCompression:      cfg.Transport.UseCompression,
+		AdaptiveCompression: cfg.Transport.AdaptiveCompression,
+		NetworkProfile:      cfg.Transport.NetworkProfile,
 	}
 	err = visitorConn.WriteMsg(newVisitorConnMsg)
 	if err != nil {
@@ -211,7 +214,11 @@ func wrapVisitorConn(conn io.ReadWriteCloser, cfg *v1.VisitorBaseConfig) (io.Rea
 	}
 	recycleFn := func() {}
 	if cfg.Transport.UseCompression {
-		rwc, recycleFn = libio.WithCompressionFromPool(rwc)
+		rwc, recycleFn = tunnel.WithCompressionFromPool(
+			rwc,
+			cfg.Transport.AdaptiveCompression,
+			tunnel.NetworkProfile(cfg.Transport.NetworkProfile),
+		)
 	}
 	return rwc, recycleFn, nil
 }

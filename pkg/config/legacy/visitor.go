@@ -70,6 +70,10 @@ type BaseVisitorConf struct {
 	// It can be less than 0, it means don't bind to the port and only receive connections redirected from
 	// other visitors. (This is not supported for SUDP now)
 	BindPort int `ini:"bind_port" json:"bind_port"`
+	// AdaptiveCompression enables network-aware Snappy frame selection.
+	AdaptiveCompression bool `ini:"adaptive_compression" json:"adaptive_compression"`
+	// NetworkProfile selects lan, wan, or lossy compression behavior.
+	NetworkProfile string `ini:"network_profile" json:"network_profile"`
 }
 
 // Base

@@ -31,6 +31,7 @@ import (
 	"github.com/fatedier/frp/pkg/proto/udp"
 	"github.com/fatedier/frp/pkg/util/limit"
 	netpkg "github.com/fatedier/frp/pkg/util/net"
+	"github.com/fatedier/frp/pkg/util/tunnel"
 	"github.com/fatedier/frp/server/metrics"
 )
 
@@ -213,7 +214,7 @@ func (pxy *UDPProxy) Run() (remoteAddr string, err error) {
 				}
 			}
 			if pxy.cfg.Transport.UseCompression {
-				rwc = libio.WithCompression(rwc)
+				rwc = tunnel.WithCompression(rwc, pxy.cfg.Transport.AdaptiveCompression, tunnel.NetworkProfile(pxy.cfg.Transport.NetworkProfile))
 			}
 
 			if pxy.GetLimiter() != nil {

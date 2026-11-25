@@ -191,6 +191,8 @@ func Convert_ProxyConf_To_v1_Base(conf ProxyConf) *v1.ProxyBaseConfig {
 
 	out.Transport.UseEncryption = base.UseEncryption
 	out.Transport.UseCompression = base.UseCompression
+	out.Transport.AdaptiveCompression = base.AdaptiveCompression
+	out.Transport.NetworkProfile = base.NetworkProfile
 	out.Transport.BandwidthLimit = base.BandwidthLimit
 	out.Transport.BandwidthLimitMode = base.BandwidthLimitMode
 	out.Transport.ProxyProtocolVersion = base.ProxyProtocolVersion
@@ -320,6 +322,8 @@ func Convert_VisitorConf_To_v1_Base(conf VisitorConf) *v1.VisitorBaseConfig {
 	out.Type = base.ProxyType
 	out.Transport.UseEncryption = base.UseEncryption
 	out.Transport.UseCompression = base.UseCompression
+	out.Transport.AdaptiveCompression = base.AdaptiveCompression
+	out.Transport.NetworkProfile = base.NetworkProfile
 	out.SecretKey = base.Sk
 	out.ServerUser = base.ServerUser
 	out.ServerName = base.ServerName

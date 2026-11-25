@@ -20,6 +20,7 @@ import (
 	"slices"
 
 	v1 "github.com/fatedier/frp/pkg/config/v1"
+	"github.com/fatedier/frp/pkg/util/tunnel"
 )
 
 func ValidateVisitorConfigurer(c v1.VisitorConfigurer) error {
@@ -50,6 +51,11 @@ func validateVisitorBaseConfig(c *v1.VisitorBaseConfig) error {
 
 	if c.BindPort == 0 {
 		return errors.New("bind port is required")
+	}
+	if c.Transport.NetworkProfile != "" {
+		if _, err := tunnel.ParseNetworkProfile(c.Transport.NetworkProfile); err != nil {
+			return err
+		}
 	}
 	return nil
 }
